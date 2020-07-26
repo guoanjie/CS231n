@@ -196,7 +196,13 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        mean = x.mean(axis=0)
+        var  = x.var(axis=0)
+        xhat = (x - mean) / np.sqrt(var + eps)
+        out = xhat * gamma + beta
+        running_mean = momentum * running_mean + (1 - momentum) * mean
+        running_var = momentum * running_var + (1 - momentum) * var / (N - 1) * N
+        cache = x, gamma, beta, eps, mean, var, xhat
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -211,7 +217,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         #######################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        out = (x - running_mean) / np.sqrt(running_var + eps) * gamma + beta
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         #######################################################################
@@ -253,7 +259,13 @@ def batchnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, gamma, beta, eps, mean, var, xhat = cache
+    dhat = dout * gamma
+    dvar = (dhat * (x - mean) * (-.5) * np.power(var + eps, -1.5)).sum(axis=0)
+    dmean = - (dhat / np.sqrt(var + eps)).sum(axis=0) - 2 * dvar * (x - mean).mean(axis=0)
+    dx = dhat / np.sqrt(var + eps) + dvar * 2 * (x - mean) / x.shape[0] + dmean / x.shape[0]
+    dgamma = (dout * xhat).sum(axis=0)
+    dbeta = dout.sum(axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -288,7 +300,18 @@ def batchnorm_backward_alt(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, gamma, beta, eps, mean, var, xhat = cache
+    dvarx = 2 * (x - mean) / x.shape[0]
+    dmeanx = 1 / x.shape[0]
+    dvarmean = 2 * (mean - x).mean(axis=0)
+    dstdvar = .5 / np.sqrt(var + eps)
+    dystd = - gamma * (x - mean) / (var + eps)
+    dymean = - gamma / np.sqrt(var + eps)
+    dyvar = dystd * dstdvar
+    dyx = dyvar[:, np.newaxis, :] * dvarx[np.newaxis, :, :] + (dyvar * dvarmean * dmeanx)[:, np.newaxis, :] + dymean[np.newaxis, np.newaxis, :] * dmeanx + np.eye(x.shape[0])[:, :, np.newaxis] * (gamma / np.sqrt(var + eps))[np.newaxis, np.newaxis, :]
+    dx = np.einsum('ik,ijk->jk', dout, dyx)
+    dgamma = (dout * xhat).sum(axis=0)
+    dbeta = dout.sum(axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################

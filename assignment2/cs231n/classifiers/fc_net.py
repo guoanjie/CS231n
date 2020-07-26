@@ -204,6 +204,9 @@ class FullyConnectedNet(object):
         for i, (in_features, out_features) in enumerate(zip([input_dim] + hidden_dims, hidden_dims + [num_classes])):
             self.params[f'W{i+1}'] = np.random.normal(scale=weight_scale, size=(in_features, out_features))
             self.params[f'b{i+1}'] = np.zeros(out_features)
+            if self.normalization == "batchnorm" and i < len(hidden_dims):
+                self.params[f'gamma{i+1}'] = np.ones(out_features)
+                self.params[f'beta{i+1}'] = np.zeros(out_features)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -268,7 +271,12 @@ class FullyConnectedNet(object):
         scores = X
         caches = dict()
         for layer in range(1, self.num_layers + 1):
-            scores, caches[layer] = affine_relu_forward(scores, self.params[f'W{layer}'], self.params[f'b{layer}'])
+            if layer >= self.num_layers:
+                scores, caches[layer] = affine_forward(scores, self.params[f'W{layer}'], self.params[f'b{layer}'])
+            elif self.normalization == "batchnorm":
+                scores, caches[layer] = affine_batchnorm_relu_forward(scores, self.params[f'W{layer}'], self.params[f'b{layer}'], self.params[f'gamma{layer}'], self.params[f'beta{layer}'], self.bn_params[layer-1])
+            else:
+                scores, caches[layer] = affine_relu_forward(scores, self.params[f'W{layer}'], self.params[f'b{layer}'])
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -298,7 +306,12 @@ class FullyConnectedNet(object):
         loss, d = softmax_loss(scores, y)
         for layer in reversed(range(1, self.num_layers + 1)):
             loss += 0.5 * self.reg * np.sum(self.params[f'W{layer}'] * self.params[f'W{layer}'])
-            d, grads[f'W{layer}'], grads[f'b{layer}'] = affine_relu_backward(d, caches[layer])
+            if layer >= self.num_layers:
+                d, grads[f'W{layer}'], grads[f'b{layer}'] = affine_backward(d, caches[layer])
+            elif self.normalization == "batchnorm":
+                d, grads[f'W{layer}'], grads[f'b{layer}'], grads[f'gamma{layer}'], grads[f'beta{layer}'] = affine_batchnorm_relu_backward(d, caches[layer])
+            else:
+                d, grads[f'W{layer}'], grads[f'b{layer}'] = affine_relu_backward(d, caches[layer])
             grads[f'W{layer}'] += self.reg * self.params[f'W{layer}']
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
