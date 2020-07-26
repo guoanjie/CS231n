@@ -277,6 +277,9 @@ class FullyConnectedNet(object):
                 scores, caches[layer] = affine_batchnorm_relu_forward(scores, self.params[f'W{layer}'], self.params[f'b{layer}'], self.params[f'gamma{layer}'], self.params[f'beta{layer}'], self.bn_params[layer-1])
             else:
                 scores, caches[layer] = affine_relu_forward(scores, self.params[f'W{layer}'], self.params[f'b{layer}'])
+            if layer < self.num_layers and self.use_dropout:
+                scores, dropout_cache = dropout_forward(scores, self.dropout_param)
+                caches[layer] = (caches[layer], dropout_cache)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -306,6 +309,9 @@ class FullyConnectedNet(object):
         loss, d = softmax_loss(scores, y)
         for layer in reversed(range(1, self.num_layers + 1)):
             loss += 0.5 * self.reg * np.sum(self.params[f'W{layer}'] * self.params[f'W{layer}'])
+            if layer < self.num_layers and self.use_dropout:
+                caches[layer], dropout_cache = caches[layer]
+                d = dropout_backward(d, dropout_cache)
             if layer >= self.num_layers:
                 d, grads[f'W{layer}'], grads[f'b{layer}'] = affine_backward(d, caches[layer])
             elif self.normalization == "batchnorm":
