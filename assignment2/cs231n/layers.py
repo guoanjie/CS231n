@@ -357,7 +357,11 @@ def layernorm_forward(x, gamma, beta, ln_param):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    mean = x.mean(axis=1, keepdims=True)
+    var = x.var(axis=1, keepdims=True)
+    xhat = (x - mean) / np.sqrt(var + eps)
+    out = xhat * gamma + beta
+    cache = x, gamma, beta, eps, mean, var, xhat
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -392,7 +396,13 @@ def layernorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    x, gamma, beta, eps, mean, var, xhat = cache
+    dhat = dout * gamma
+    dvar = (dhat * (x - mean) * (-.5) * np.power(var + eps, -1.5)).sum(axis=1, keepdims=True)
+    dmean = - (dhat / np.sqrt(var + eps)).sum(axis=1, keepdims=True) - 2 * dvar * (x - mean).mean(axis=1, keepdims=True)
+    dx = dhat / np.sqrt(var + eps) + dvar * 2 * (x - mean) / x.shape[1] + dmean / x.shape[1]
+    dgamma = (dout * xhat).sum(axis=0)
+    dbeta = dout.sum(axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
