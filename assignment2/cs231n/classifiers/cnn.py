@@ -63,7 +63,13 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        C, H, W = input_dim
+        self.params['W1'] = np.random.normal(scale=weight_scale, size=(C, C, filter_size, filter_size))
+        self.params['b1'] = np.zeros(C)
+        self.params['W2'] = np.random.normal(scale=weight_scale, size=(np.product(input_dim) // 4, hidden_dim))
+        self.params['b2'] = np.zeros(hidden_dim)
+        self.params['W3'] = np.random.normal(scale=weight_scale, size=(hidden_dim, hidden_dim))
+        self.params['b3'] = np.zeros(hidden_dim)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -102,7 +108,10 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        c_out, c_cache = conv_relu_pool_forward(X, W1, b1, conv_param, pool_param)
+        c_shape = c_out.shape
+        h, h_cache = affine_relu_forward(c_out.reshape(c_out.shape[0], -1), W2, b2)
+        scores, cache = affine_forward(h, W3, b3)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -125,7 +134,13 @@ class ThreeLayerConvNet(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        loss, dscores = softmax_loss(scores, y)
+        dh, grads['W3'], grads['b3'] = affine_backward(dscores, cache)
+        dc, grads['W2'], grads['b2'] = affine_relu_backward(dh, h_cache)
+        dx, grads['W1'], grads['b1'] = conv_relu_pool_backward(dc.reshape(c_shape), c_cache)
+        for layer in range(1, 4):
+            loss += 0.5 * self.reg * np.sum(self.params[f'W{layer}'] * self.params[f'W{layer}'])
+            grads[f'W{layer}'] += self.reg * self.params[f'W{layer}']
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
