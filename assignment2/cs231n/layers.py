@@ -815,13 +815,10 @@ def spatial_groupnorm_forward(x, gamma, beta, G, gn_param):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     N, C, H, W = x.shape
-    x = x.reshape(N * G, -1)
-    mean = x.mean(axis=0)
-    std = np.sqrt(x.var(axis=0) + eps)
-    xhat = (x - mean) / std
-    xhat = xhat.transpose().reshape(N, C, H, W)
+    xhat, cache = layernorm_forward(x.reshape(N * G, -1), 1, 0, gn_param)
+    xhat = xhat.reshape(x.shape)
     out = xhat * gamma + beta
-    cache = gamma, beta, G, std, xhat
+    cache = gamma, beta, xhat, cache
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
@@ -851,14 +848,16 @@ def spatial_groupnorm_backward(dout, cache):
     ###########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    N, C, H, W = dout.shape
-    gamma, beta, G, std, xhat = cache
-    dbeta = dout.sum(axis=(0, 2, 3), keepdims=True)
-    dgamma = np.sum(dout * xhat, axis=(0, 2, 3), keepdims=True)
-    xhat = xhat.reshape(N * G, -1).transpose()
-    dhat = (dout * gamma).reshape(N * G, -1).transpose()
-    dx = dhat - (dhat.sum(axis=0) + (dhat * xhat).sum(axis=0) * xhat) / (N * G)
-    dx = (dx / std[:, np.newaxis]).transpose().reshape(dout.shape)
+    gamma, beta, xhat, cache = cache
+    dgamma = (dout * xhat).sum(
+        axis=tuple(np.where(np.array(gamma.shape) == 1)[0]), keepdims=True,
+    )
+    dbeta = dout.sum(
+        axis=tuple(np.where(np.array(beta.shape) == 1)[0]), keepdims=True,
+    )
+    x = cache[0]
+    dx, _, _ = layernorm_backward((dout * gamma).reshape(x.shape), cache)
+    dx = dx.reshape(xhat.shape)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ###########################################################################
