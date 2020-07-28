@@ -34,7 +34,11 @@ def compute_saliency_maps(X, y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    preds = model(X)
+    loss = torch.nn.CrossEntropyLoss()(preds, y)
+    loss.backward()
+    grad = X.grad
+    saliency = grad.gather(1, grad.argmax(dim=1, keepdims=True)).squeeze()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -76,7 +80,17 @@ def make_fooling_image(X, target_y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    from .optim import sgd
+
+    target_y = torch.tensor([target_y])
+    scores = model(X_fooling)
+    while scores.data.max(1)[1] != target_y:
+        loss = torch.nn.CrossEntropyLoss()(scores, target_y)
+        loss.backward()
+        grad = X_fooling.grad
+        if grad is not None:
+            X_fooling.data -= learning_rate * grad / grad.norm()
+        scores = model(X_fooling)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
@@ -94,7 +108,10 @@ def class_visualization_update_step(img, model, target_y, l2_reg, learning_rate)
     ########################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    pass
+    scores = model(img)
+    loss = scores[0][target_y] - l2_reg * img.norm() ** 2
+    loss.backward()
+    img.data += learning_rate * img.grad / img.grad.norm()
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ########################################################################
