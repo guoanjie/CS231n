@@ -8,9 +8,9 @@ import numpy as np
 
 from .image_utils import SQUEEZENET_MEAN, SQUEEZENET_STD
 
-dtype = torch.cuda.FloatTensor
+dtype = torch.FloatTensor
 # Uncomment out the following line if you're on a machine with a GPU set up for PyTorch!
-#dtype = torch.cuda.FloatTensor
+dtype = torch.cuda.FloatTensor
 def content_loss(content_weight, content_current, content_original):
     """
     Compute the content loss for style transfer.
@@ -78,7 +78,7 @@ def style_loss(feats, style_layers, style_targets, style_weights):
     # not be very much code (~5 lines). You will need to use your gram_matrix function.
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    loss = torch.tensor(0, dtype=torch.float).cuda()
+    loss = torch.tensor(0).type(dtype)
     for style_layer, style_target, style_weight in zip(style_layers, style_targets, style_weights):
         loss += style_weight * (gram_matrix(feats[style_layer]) - style_target).norm().pow(2)
     return loss
