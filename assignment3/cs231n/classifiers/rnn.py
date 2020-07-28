@@ -151,7 +151,15 @@ class CaptioningRNN(object):
         ############################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h0, h0_cache = affine_forward(features, W_proj, b_proj)
+        emb, emb_cache = word_embedding_forward(captions_in, W_embed)
+        h, h_cache = rnn_forward(emb, h0, Wx, Wh, b)
+        vocab, vocab_cache = temporal_affine_forward(h, W_vocab, b_vocab)
+        loss, dvocab = temporal_softmax_loss(vocab, captions_out, captions_out != self._null)
+        dh, grads['W_vocab'], grads['b_vocab'] = temporal_affine_backward(dvocab, vocab_cache)
+        demb, dh0, grads['Wx'], grads['Wh'], grads['b'] = rnn_backward(dh, h_cache)
+        grads['W_embed'] = word_embedding_backward(demb, emb_cache)
+        _, grads['W_proj'], grads['b_proj'] = affine_backward(dh0, h0_cache)
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
@@ -219,7 +227,14 @@ class CaptioningRNN(object):
         ###########################################################################
         # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-        pass
+        h, h_cache = affine_forward(features, W_proj, b_proj)
+        caption = self._start
+        for t in range(max_length):
+            emb, emb_cache = word_embedding_forward(caption, W_embed)
+            h, h_cache = rnn_step_forward(emb, h, Wx, Wh, b)
+            vocab, vocab_cache = affine_forward(h, W_vocab, b_vocab)
+            caption = vocab.argmax(axis=1)
+            captions[:, t] = caption
 
         # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
         ############################################################################
