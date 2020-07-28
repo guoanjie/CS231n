@@ -71,12 +71,12 @@ def rnn_step_backward(dnext_h, cache):
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
     x, prev_h, Wx, Wh, next_h = cache
-    dlinear = dnext_h * (1 - next_h * next_h)
-    dx = np.matmul(dlinear, Wx.T)
-    dprev_h = np.matmul(dlinear, Wh.T)
-    dWx = np.matmul(x.T, dlinear)
-    dWh = np.matmul(prev_h.T, dlinear)
-    db = dlinear.sum(axis=0)
+    dact = dnext_h * (1 - next_h * next_h)
+    dx = np.matmul(dact, Wx.T)
+    dprev_h = np.matmul(dact, Wh.T)
+    dWx = np.matmul(x.T, dact)
+    dWh = np.matmul(prev_h.T, dact)
+    db = dact.sum(axis=0)
 
     # *****END OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
     ##############################################################################
