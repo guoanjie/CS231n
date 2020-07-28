@@ -80,8 +80,6 @@ def make_fooling_image(X, target_y, model):
     ##############################################################################
     # *****START OF YOUR CODE (DO NOT DELETE/MODIFY THIS LINE)*****
 
-    from .optim import sgd
-
     target_y = torch.tensor([target_y])
     scores = model(X_fooling)
     while scores.data.max(1)[1] != target_y:
